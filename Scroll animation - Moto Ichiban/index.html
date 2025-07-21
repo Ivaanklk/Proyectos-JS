@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll animation - Moto Ichiban</title>
+    <style>
+        *,*::before,*::after{
+            box-sizing: border-box;
+        }
+
+        /*  Estilo bola del header */
+        header {
+            background: linear-gradient(60deg, orange, red 40%);
+            width: 510px;
+            height: 510px;
+            border-radius: 1000px;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+            margin-top: -350px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            animation-name: slideInDown;
+            animation-duration: 1s;
+
+            img {
+                width: 260px;
+                margin: 0 auto;
+                height: auto;
+                margin-bottom: 100px;
+            }
+        }
+
+        body{
+            margin: 0;
+        }
+        /*Estilo de la moto*/
+        img{
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            position: fixed;
+        }
+
+        main{
+            height: 300dvh; /*   altura por defecto pq no hay contenido*/
+        }
+
+        @keyframes slideInDown {
+            from {
+                transform: translate3d(-50%, -100%, 0);
+            }
+
+            to {
+                transform: translate3d(-50%, 0, 0);
+            }
+
+        }
+    </style>
+
+    <script type="module">
+        
+
+        const main = document.querySelector('main');
+        const MAX_FRAMES = 151;
+        let currentFrame = 1;
+        
+        // Actualizar la imagen 
+        function updateImage (currentFrame = 1){
+            const id = currentFrame.toString().padStart(3, '0');
+            img.src ='./frames/moto-' + id + '.webp';
+        }
+
+        // Crear la imagen
+        const img = document.createElement('img');
+        main.appendChild(img);
+        // Por default primer frame
+        updateImage(currentFrame);
+
+        // Calcular el maximo scroll
+        let maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        
+        // Actualizar el maximo scroll
+        window.addEventListener('resize', () => {
+            maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        })
+        
+        let lastFrameUpdate = 0
+        window.addEventListener('scroll', () => {
+            // Actualizar frames si ha pasado cierto tiempo para evitar cálculos
+            if(Date.now() - lastFrameUpdate < 1) return true
+
+            lastFrameUpdate = Date.now();
+
+            const scrollPosition = window.scrollY;
+
+            // Calcular el porcentaje del scroll
+            const scrollFraction = scrollPosition / maxScroll;
+
+            // Calcular el frame actual
+            const frame = Math.min(MAX_FRAMES, Math.floor(scrollFraction * (MAX_FRAMES - 1)) + 1);
+
+            // Actualizar el frame
+            if(currentFrame !== frame){
+                updateImage(frame);
+                currentFrame = frame;
+            }
+        });
+
+    </script>
+</head>
+
+<body>
+    <main>
+        <header>
+            <img src="logo.png" alt="Moto" />
+        </header>
+    </main>
+</body>
+
+</html>
