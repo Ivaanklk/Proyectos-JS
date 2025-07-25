@@ -25,7 +25,7 @@
             min-height: 100vh;
             overflow: hidden;
             user-select: none;
-            background: #efefef;
+            background: white;
         }
 
         main {
@@ -38,7 +38,7 @@
         }
 
         section {
-            background: white;
+            background-color: #efefef;
             width: 100%;
             border-radius: 32px;
             display: flex;
@@ -56,7 +56,7 @@
 
             & img {
                 width: 24px;
-                height: 24pxpx;
+                height: 24px;
             }
         }
 
@@ -67,13 +67,44 @@
             padding: 0 24px;
             justify-content: center;
             align-items: center;
+            background-color: #efefef;
 
             & button {
+                background: url('./tinder-icons.webp') no-repeat;
+                background-position: 0px 0px;
+                background-size: 175px;
                 height: 32px;
                 width: 32px;
                 border-radius: 50%;
-                border: 1px solid #ccc;
+                border: 0;
                 cursor: pointer;
+                transition: scale .3s ease;
+
+                &:hover {
+                    scale: 1.4;
+                }
+
+                &.is-big {
+                    background-size: 250px;
+                    width: 48px;
+                    height: 48px;
+                }
+
+                &.is-undo {
+                    background-position: -142px 0;
+                }
+
+                &.is-remove {
+                    background-position: -150px 1px;
+                }
+
+                &.is-star {
+                    background-position: -71px 0;
+                }
+
+                &.is-fav {
+                    background-position: -50px 1px;
+                }
             }
         }
 
@@ -83,22 +114,190 @@
             height: 100%;
             margin: 0 auto;
 
+            &>span {
+                display: grid;
+                place-content: center;
+                color: #777;
+                font-size: 14px;
+                text-align: center;
+                height: 100%;
+                z-index: -1;
+            }
+
             & article {
-                background: black;
-                border-radius: 0px;
+                border-radius: 8px;
+                cursor: grab;
                 overflow: hidden;
                 position: absolute;
+                inset: 0;
                 width: 100%;
                 height: 100%;
+                z-index: 2;
+
+                &.go-left {
+                    transform: translateX(-150%) rotate(-30deg) !important;
+                }
+
+                &.go-right {
+                    transform: translateX(150%) rotate(30deg) !important;
+                }
+
+                &.go-left,
+                &.go-right {
+                    transition: transform .3s ease, rotate .3s ease;
+                }
+
+                &.reset {
+                    transition: transform .3s ease;
+                    transform: translateX(0) !important;
+                }
+
+                & .choice {
+                    transition: opacity .3s ease;
+                    border-radius: 8px;
+                    color: black;
+                    border: 3px solid;
+                    z-index: 9999;
+                    position: absolute;
+                    top: 32px;
+                    right: 16px;
+                    opacity: 0;
+                    padding: 4px 8px;
+                    font-size: 24px;
+                    font-weight: bold;
+                    text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+                    width: fit-content;
+
+                    &.nope {
+                        border-color: #f44336;
+                        color: #f44336;
+                        transform: rotate(30deg);
+                    }
+
+                    &.like {
+                        border-color: #36ff47;
+                        color: #36f447;
+                        left: 16px;
+                        transform: rotate(-30deg);
+                    }
+
+
+                }
 
                 & img {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
                 }
+
+                & h2 {
+                    color: white;
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    align-items: flex-end;
+                    height: 100%;
+                    width: 100%;
+                    padding: 16px;
+                    z-index: 3;
+                    background: linear-gradient(to top,
+                            #00000088 20%,
+                            transparent 40%);
+                }
+
+                & span {
+                    margin-left: 6px;
+                    font-size: 18px;
+                    font-weight: 400;
+                }
             }
         }
     </style>
+    <script>
+        const DECISION_THRESHOLD = 75;
+        let isAnimating = false;
+        let pullDeltaX = 0;
+
+        function startDrag(e) {
+            if (isAnimating) {
+                return;
+            }
+
+            const actualCard = event.target.closest('article');
+            if (!actualCard) {
+                return;
+            }
+
+            const startX = event.pageX ?? event.touches[0].pageX;
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+
+            document.addEventListener('touchmove', onMove, { passive: true });
+            document.addEventListener('touchend', onEnd, { passive: true });
+
+            function onMove(e) {
+                const currentX = event.pageX ?? event.touches[0].pageX;
+                pullDeltaX = currentX - startX;
+                if (pullDeltaX === 0) return;
+                isAnimating = true;
+                const degree = pullDeltaX / 17;
+                actualCard.style.transform = `translateX(${pullDeltaX}px) rotate(${degree}deg)`;
+                actualCard.style.cursor = 'grabbing';
+
+                const opacity = Math.abs(pullDeltaX) / 100;
+                const isRight = pullDeltaX > 0;
+
+                const choiceEl = isRight 
+                    ? actualCard.querySelector('.choice.like') 
+                    : actualCard.querySelector('.choice.nope');
+
+                choiceEl.style.opacity = opacity;
+            }
+
+            function onEnd(e) {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onEnd);
+
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+
+                const decisionMade = Math.abs(pullDeltaX) >= DECISION_THRESHOLD;
+
+                if (decisionMade) {
+                    const goRight = pullDeltaX >= 0;
+
+                    actualCard.classList.add(goRight ? 'go-right' : 'go-left');
+                    actualCard.addEventListener('transitionend', () => {
+                        actualCard.remove();
+                    });
+                } else {
+                    actualCard.classList.add('reset');
+                    actualCard.classList.remove('go-right', 'go-left');
+
+                    actualCard.querySelectorAll('.choice').forEach(choice => {
+                        choice.style.opacity = 0;
+                    });
+                }
+
+                actualCard.addEventListener('transitionend', () => {
+                    actualCard.removeAttribute('style');
+                    actualCard.classList.remove('reset');
+
+                    isAnimating = false;
+                    pullDeltaX = 0;
+                });
+
+                actualCard
+                    .querySelectorAll('.choice')
+                    .forEach((el) => (el.style.opacity = 0));
+            }
+        }
+
+
+        document.addEventListener('mousedown', startDrag);
+        document.addEventListener('touchstart', startDrag, { passive: true }); //movil 
+    </script>
 </head>
 
 <body>
@@ -122,14 +321,19 @@
                     <div class="choice nope">NOPE</div>
                     <div class="choice like">LIKE</div>
                 </article>
+
+                <span>
+                    No hay más personas... <br />
+                    Vuelve a intentarlo más tarde
+                </span>
             </div>
 
             <footer>
-                <button aria-label=""></button>
-                <button aria-label=""></button>
-                <button aria-label=""></button>
-                <button aria-label=""></button>
-                <button aria-label=""></button>
+                <button class="is-undo" aria-label="undo"></button>
+                <button class="is-remove is-big" aria-label="remove"></button>
+                <button class="is-star" aria-label="star"></button>
+                <button class="is-big is-fav" aria-label="fav"></button>
+                <button class="is-zap" aria-label="zap"></button>
             </footer>
         </section>
     </main>
